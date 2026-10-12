@@ -1,49 +1,31 @@
 # CLAUDE.md — Keep Alive (code repo)
 
-> Fork of Synaphi/background-tray. The vault paths and docs named below belong to the original
-> author and are not available in this fork; treat the code and README as the source of truth.
-
-This folder is the **code repo**. The **source of truth for design, spec, roadmap and working
-rules lives in the Obsidian vault** (written in Korean). Read it before touching the code.
-
-## Source of truth (Obsidian vault)
-
-| Document | Role |
-|---|---|
-| `C:\Obsidian\05. Projects\BackgroundTray\00. OVERVIEW.md` | Hub — status, roadmap, open decisions, links |
-| `…\01. Spec.md` | Technical spec — ★Electron integration, onunload cleanup checklist |
-| `…\02. Build_and_Deploy.md` | Build, test, GitHub, community-store release |
-| `…\03. Scaffold.md` | Verified scaffold files |
-| `…\90. Worklog.md` / `…\91. Feedback_Backlog.md` | Worklog and backlog (self-improvement loop) |
-| `C:\Obsidian\_AI_GUIDE.md` / `C:\Obsidian\_PROJECT_LOOP.md` | Vault-wide rules |
-
-> When code and docs disagree, **the Obsidian docs win**. Reflect repo changes back into them.
+Obsidian plugin that keeps Obsidian running in the background when the window is closed, with an
+optional tray / menu bar icon. Fork of `Synaphi/background-tray` (MIT); see the README.
 
 ## Repo facts
 
-- **Source of truth for code**: GitHub `tilgoldan/keep-alive` (fork of `Synaphi/background-tray`). Clone it anywhere,
-  work, push — local folders are throwaway working copies, not the canonical location.
-- **Releases are automated**: pushing a tag that matches `manifest.json` version runs
+- **Code**: GitHub `tilgoldan/keep-alive`, a fork of `Synaphi/background-tray`.
+- **Platforms**: developed and tested on macOS and Linux (GNOME). Windows is untested.
+- **Releases**: pushing a tag that matches the `manifest.json` version runs
   `.github/workflows/release.yml`, which builds and attaches `main.js` / `manifest.json` /
   `styles.css` plus build provenance as a draft release. Publish the draft afterwards.
-- **Local test deploy**: `C:\Obsidian\.obsidian\plugins\keep-alive\`
-  (`main.js` + `manifest.json` + `styles.css`).
-- ⚠️ **Real-device verification happens on one PC at a time.** `.obsidian/plugins` is covered by
-  Obsidian Sync, so deploying from two machines at once makes `main.js` overwrite itself.
-  CI cannot verify tray/Electron behaviour — the smoke test missed the 1.0.5 and 1.0.6 quit
-  regressions, so always verify in a real Obsidian before tagging.
-- **Version scheme (since 2026-09-13)**: the version *is* the date — `<year>.<MM>.<DD>` with the
-  first number counting years since 2026 (`1.09.13` = 2026-09-13, `2.01.05` = 2027-01-05). A second
-  release on the same day appends a fourth number: `1.09.13.2`. Never use letter suffixes: Obsidian
-  compares versions with `parseInt` per dot-part, so `1.09.13a` and `1.09.13b` are the same version
-  to it and the second one is never offered as an update. Bump `manifest.json`, `package.json` and
-  `versions.json` together by hand; the git tag must equal `manifest.json` version exactly.
-  Do not run `npm version` — npm normalises `1.09.14` to `1.9.14`, which would not match the tag.
-- **Release order**: push the tag first, wait for the Actions draft, publish it, THEN push `main`.
-  Obsidian reads `manifest.json` from `main` to advertise updates, so pushing `main` first
-  advertises a version whose download URL still 404s until the draft is published.
-- **Scope**: one job only — run in background + tray icon. Extra features were deliberately
-  dropped to keep the plugin small.
+  Obsidian only installs those three files, so every asset has to end up inside `main.js`.
+- **Deploying locally**: copy `main.js`, `manifest.json` and `styles.css` into
+  `<vault>/.obsidian/plugins/keep-alive/`, then toggle the plugin. If the vault's `.obsidian`
+  folder is synced (Obsidian Sync, LiveSync), deploying from two machines at once makes
+  `main.js` overwrite itself.
+- ⚠️ **CI cannot verify tray / Electron behaviour.** The smoke test doesn't run Electron, so
+  always check changes in a real Obsidian (close, Dock/tray click, Cmd+Q, relaunch) before
+  tagging.
+- **Version scheme (inherited from upstream)**: the version is the date, `<year>.<MM>.<DD>`, with
+  the first number counting years since 2026 (`1.09.13` = 2026-09-13). A second release on the
+  same day appends a fourth number (`1.09.13.2`); never use letter suffixes, because Obsidian
+  compares versions with `parseInt` per dot-part. Bump `manifest.json`, `package.json` and
+  `versions.json` together by hand, and the git tag must equal the `manifest.json` version
+  exactly. Don't run `npm version`: it normalises `1.09.14` to `1.9.14`.
+- **Release order**: push the tag first, wait for the Actions draft, publish it, then push
+  `main`, so Obsidian never advertises a version whose download still 404s.
 
 ## Build / test
 
@@ -54,22 +36,32 @@ npm run build    # tsc typecheck + esbuild production (expect exit 0)
 node smoke.cjs   # regression smoke over the core paths, no Electron needed (expect ALL PASS)
 ```
 
-Build gotchas:
+Build notes:
 
-- esbuild `external` must include `electron` and `@electron/remote` (the bundle breaks otherwise).
-- With `strict: true`, the `settings` field needs `settings!:` (definite assignment).
+- esbuild `external` must include `electron` and `@electron/remote`, or the bundle breaks.
+- PNGs are imported as base64 strings (`loader: { ".png": "base64" }`, typed in `images.d.ts`).
+  The tray icons live in `assets/icons/`: white and black, a 13×16 px `name.png` plus a 26×32 px
+  `name@2x.png`. Keep those sizes.
+- With `strict: true`, the `settings` field needs `settings!:`.
+
+## Behaviour notes (learned the hard way)
+
+- **Tray icons**: the plugin writes the 1×/@2× pair next to each other into its plugin folder and
+  loads the 1× file by path, so Electron attaches both. Electron's `scaleFactor` option and
+  loading an `@2x` file directly misreport the size (÷ scale²) in this Electron version, and
+  `setTemplateImage` doesn't tint the tray, so the colour is chosen in code (white/black).
+- **Quitting on macOS**: the close veto would block Cmd+Q, Dock > Quit and shutdown. The
+  `before-quit` event lifts it; `activate` (Dock click) shows the window again.
+- **macOS menu bar clicks**: `setContextMenu` makes a left click open the menu as well, so on
+  macOS the menu is popped up manually on `right-click`.
+- **Hide Dock icon** (macOS only) is only allowed while the tray icon exists, so there is always a
+  way back.
 
 ## Conventions
 
-- **Write code, comments and user-facing strings in English.** The repo is public and takes
-  outside contributions; only the Obsidian vault documents are in Korean.
+- Write code, comments and user-facing strings in English.
 - Wrap every Electron call in try/catch — never crash the app.
-- `onunload` must run the full cleanup checklist (01. Spec §3.4) so disabling the plugin
-  restores stock behaviour completely.
-
-## Working rules (summary — details in _AI_GUIDE / _PROJECT_LOOP)
-
-1. Start by reviewing the open items in `91. Feedback_Backlog`.
-2. Work incrementally. After each step check the build still passes and **ask before continuing** —
-   do not run to the end alone.
-3. On finishing, add one line to `90. Worklog` and refresh `status` / `updated` in the related docs.
+- `onunload` must undo everything the plugin did (listeners, tray, Dock, patched `window.open`),
+  so disabling the plugin restores stock behaviour.
+- Keep the Obsidian logo unmodified and single-colour (white or black), per Obsidian's brand
+  guidelines (https://obsidian.md/brand).
