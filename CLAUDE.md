@@ -1,4 +1,7 @@
-# CLAUDE.md — Background Tray (code repo)
+# CLAUDE.md — Keep Alive (code repo)
+
+> Fork of Synaphi/background-tray. The vault paths and docs named below belong to the original
+> author and are not available in this fork; treat the code and README as the source of truth.
 
 This folder is the **code repo**. The **source of truth for design, spec, roadmap and working
 rules lives in the Obsidian vault** (written in Korean). Read it before touching the code.
@@ -18,12 +21,12 @@ rules lives in the Obsidian vault** (written in Korean). Read it before touching
 
 ## Repo facts
 
-- **Source of truth for code**: GitHub `Synaphi/background-tray` (public). Clone it anywhere,
+- **Source of truth for code**: GitHub `tilgoldan/keep-alive` (fork of `Synaphi/background-tray`). Clone it anywhere,
   work, push — local folders are throwaway working copies, not the canonical location.
 - **Releases are automated**: pushing a tag that matches `manifest.json` version runs
   `.github/workflows/release.yml`, which builds and attaches `main.js` / `manifest.json` /
   `styles.css` plus build provenance as a draft release. Publish the draft afterwards.
-- **Local test deploy**: `C:\Obsidian\.obsidian\plugins\background-tray\`
+- **Local test deploy**: `C:\Obsidian\.obsidian\plugins\keep-alive\`
   (`main.js` + `manifest.json` + `styles.css`).
 - ⚠️ **Real-device verification happens on one PC at a time.** `.obsidian/plugins` is covered by
   Obsidian Sync, so deploying from two machines at once makes `main.js` overwrite itself.

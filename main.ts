@@ -1,7 +1,7 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 
 /*
- * Background Tray — keep Obsidian running in the system tray instead of quitting.
+ * Keep Alive — keep Obsidian running in the background instead of quitting, with an optional tray icon.
  * Single purpose by design. Design notes live in the project docs (00. OVERVIEW / 01. Spec).
  */
 
@@ -189,7 +189,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		this.remote = getRemote();
 		if (!this.remote) {
 			new Notice(
-				"Background Tray: cannot reach Electron — the tray is unavailable in this build."
+				"Keep Alive: cannot reach Electron — the tray is unavailable in this build."
 			);
 			// Never crash the app: expose the settings tab only, with the features off.
 			this.addSettingTab(new BackgroundTraySettingTab(this.app, this));
@@ -199,7 +199,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		try {
 			this.win = this.remote.getCurrentWindow();
 		} catch (e) {
-			console.error("Background Tray: getCurrentWindow failed", e);
+			console.error("Keep Alive: getCurrentWindow failed", e);
 			this.win = null;
 		}
 
@@ -464,7 +464,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		try {
 			win.on("close", this.closeHandler);
 		} catch (e) {
-			console.error("Background Tray: failed to register the close listener", e);
+			console.error("Keep Alive: failed to register the close listener", e);
 			this.closeHandler = null;
 		}
 	}
@@ -577,7 +577,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 			app.prependListener("second-instance", this.secondInstanceHandler);
 			app.on("browser-window-created", this.windowCreatedHandler);
 		} catch (e) {
-			console.error("Background Tray: failed to register single-instance handling", e);
+			console.error("Keep Alive: failed to register single-instance handling", e);
 		}
 	}
 
@@ -633,7 +633,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 			app.on("before-quit", this.beforeQuitHandler);
 			app.on("activate", this.activateHandler);
 		} catch (e) {
-			console.error("Background Tray: failed to register macOS lifecycle", e);
+			console.error("Keep Alive: failed to register macOS lifecycle", e);
 		}
 	}
 
@@ -694,8 +694,8 @@ export default class BackgroundTrayPlugin extends Plugin {
 				}
 			}
 		} catch (e) {
-			console.error("Background Tray: failed to create the tray icon", e);
-			new Notice("Background Tray: failed to create the tray icon.");
+			console.error("Keep Alive: failed to create the tray icon", e);
+			new Notice("Keep Alive: failed to create the tray icon.");
 			this.tray = null;
 		}
 	}
@@ -742,7 +742,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 					if (!img.isEmpty()) return img;
 				}
 			} catch (e) {
-				console.error("Background Tray: macOS icon failed", e);
+				console.error("Keep Alive: macOS icon failed", e);
 			}
 		}
 		// 3) extract the icon from the Obsidian executable at runtime (nothing to bundle)
@@ -789,7 +789,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		try {
 			tray.setToolTip(this.renderTooltip(vault));
 		} catch (e) {
-			console.error("Background Tray: failed to set the tooltip", e);
+			console.error("Keep Alive: failed to set the tooltip", e);
 		}
 		try {
 			tray.setContextMenu(
@@ -810,7 +810,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 				])
 			);
 		} catch (e) {
-			console.error("Background Tray: failed to set the context menu", e);
+			console.error("Keep Alive: failed to set the context menu", e);
 		}
 	}
 
@@ -876,7 +876,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 				this.showWindow();
 			}
 		} catch (e) {
-			console.error("Background Tray: toggleWindow failed", e);
+			console.error("Keep Alive: toggleWindow failed", e);
 		}
 	}
 
@@ -940,7 +940,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 			if (wantHidden) dock.hide?.();
 			else void dock.show?.();
 		} catch (e) {
-			console.error("Background Tray: dock update failed", e);
+			console.error("Keep Alive: dock update failed", e);
 		}
 	}
 
@@ -955,7 +955,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 			if (this.win) this.win.close();
 			else this.remote?.app?.quit();
 		} catch (e) {
-			console.error("Background Tray: quit failed", e);
+			console.error("Keep Alive: quit failed", e);
 			try {
 				this.remote?.app?.quit();
 			} catch {
@@ -983,7 +983,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 			app?.relaunch();
 			app?.exit(0);
 		} catch (e) {
-			console.error("Background Tray: relaunch failed", e);
+			console.error("Keep Alive: relaunch failed", e);
 		}
 	}
 

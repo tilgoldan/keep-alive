@@ -1,3 +1,3 @@
-/* Background Tray — no runtime UI. Tray and window behaviour all live on the Electron side.
+/* Keep Alive — no runtime UI. Tray and window behaviour all live on the Electron side.
    The settings tab uses Obsidian's own styles, so no extra CSS is needed.
    (The manifest rules expect the file to exist; it may stay empty.) */

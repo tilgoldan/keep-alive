@@ -1,10 +1,10 @@
-![Background Tray — keep Obsidian in the system tray](assets/banner.jpg)
+# Keep Alive
 
-# Background Tray
+Keep Obsidian running in the background when you close the window, with an optional tray or menu bar icon.
 
-Keep Obsidian running in the system tray instead of quitting when you close the window.
+> **Fork notice:** Keep Alive is a fork of [Synaphi/background-tray](https://github.com/Synaphi/background-tray) (MIT). It adds native macOS behaviour and aims to grow Linux-specific features. Not affiliated with or endorsed by Obsidian; "Obsidian" and its logo are trademarks of Obsidian.
 
-**One job, done well.** Background Tray is intentionally tiny and single-purpose — close-to-tray and a tray icon, nothing else. No background services, no extra UI, no bloat. Turn it off and Obsidian behaves exactly as before.
+**One job, done well.** Keep Alive is intentionally small and focused on keeping Obsidian running in the background (so things like the MCP server or Sync keep working), with an optional tray icon. No background services, no extra UI, no bloat. Turn it off and Obsidian behaves exactly as before.
 
 A robust, modern reimplementation of the (now unmaintained) `obsidian-tray`, built for Obsidian / Electron in 2026.
 
@@ -30,10 +30,10 @@ A robust, modern reimplementation of the (now unmaintained) `obsidian-tray`, bui
 
 ## Install
 
-**Community store:** Settings → Community plugins → Browse → search **Background Tray** → Install → Enable.
+**Community store:** Settings → Community plugins → Browse → search **Keep Alive** → Install → Enable.
 
 **Manual:** copy `main.js`, `manifest.json`, and `styles.css` into
-`<vault>/.obsidian/plugins/background-tray/`, then enable it under
+`<vault>/.obsidian/plugins/keep-alive/`, then enable it under
 Settings → Community plugins.
 
 **BRAT (beta):** add this repo in the BRAT plugin.
@@ -88,4 +88,4 @@ npm run build   # typecheck + production bundle
 
 ## License
 
-MIT © Synaphi
+MIT © Synaphi, Til Goldan

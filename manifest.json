@@ -1,11 +1,10 @@
 {
-	"id": "background-tray",
-	"name": "Background Tray",
+	"id": "keep-alive",
+	"name": "Keep Alive",
 	"version": "1.09.14",
 	"minAppVersion": "1.4.0",
-	"description": "Keep running in the system tray instead of quitting when you close the window.",
-	"author": "Synaphi",
-	"authorUrl": "https://github.com/synaphi",
-	"fundingUrl": "https://paypal.me/synaphi",
+	"description": "Keep Obsidian running in the background when you close the window, with an optional tray or menu bar icon.",
+	"author": "Til Goldan",
+	"authorUrl": "https://github.com/tilgoldan",
 	"isDesktopOnly": true
 }

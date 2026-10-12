@@ -1,5 +1,5 @@
 {
-	"name": "background-tray",
+	"name": "keep-alive",
 	"version": "1.09.14",
 	"description": "Keep running in the system tray instead of quitting when you close the window.",
 	"main": "main.js",
@@ -13,7 +13,7 @@
 		"tray",
 		"electron"
 	],
-	"author": "Synaphi",
+	"author": "Til Goldan",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^20.12.7",
