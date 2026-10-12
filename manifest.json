@@ -1,7 +1,7 @@
 {
 	"id": "keep-alive",
 	"name": "Keep Alive",
-	"version": "1.09.14",
+	"version": "1.10.12",
 	"minAppVersion": "1.4.0",
 	"description": "Keep Obsidian running in the background when you close the window, with an optional tray or menu bar icon.",
 	"author": "Til Goldan",
