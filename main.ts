@@ -55,7 +55,8 @@ interface ElectronWindow {
 interface ElectronTray {
 	setToolTip(tooltip: string): void;
 	setContextMenu(menu: unknown): void;
-	on(event: "click", listener: () => void): void;
+	popUpContextMenu(menu?: unknown): void;
+	on(event: "click" | "right-click", listener: () => void): void;
 	destroy(): void;
 }
 
@@ -153,6 +154,9 @@ export default class BackgroundTrayPlugin extends Plugin {
 	private win: ElectronWindow | null = null;
 	private tray: ElectronTray | null = null;
 	private appearanceSubId: number | null = null;
+	// The tray's right-click menu. On macOS it is popped up by hand (see createTray), because
+	// setContextMenu would make a plain left click open the menu as well.
+	private trayMenu: unknown = null;
 	private closeHandler: ((e: ElectronEvent) => void) | null = null;
 	private beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
 	private secondInstanceHandler: (() => void) | null = null;
@@ -674,7 +678,19 @@ export default class BackgroundTrayPlugin extends Plugin {
 			const tray = new Tray(icon);
 			this.tray = tray;
 			this.applyTrayLabels(tray, Menu);
-			tray.on("click", () => this.toggleWindow());
+			if (process.platform === "darwin") {
+				// Mac menu bar convention: click opens / raises the window, right-click the menu.
+				tray.on("click", () => this.showWindow());
+				tray.on("right-click", () => {
+					try {
+						tray.popUpContextMenu(this.trayMenu);
+					} catch (e) {
+						console.error("Keep Alive: failed to show the tray menu", e);
+					}
+				});
+			} else {
+				tray.on("click", () => this.toggleWindow());
+			}
 			// macOS: swap the white/black icon when the system appearance changes.
 			if (process.platform === "darwin") {
 				try {
@@ -781,6 +797,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 			}
 		}
 		this.tray = null;
+		this.trayMenu = null;
 	}
 
 	// Show the current vault in the tooltip and the right-click menu. With one tray icon per
@@ -796,8 +813,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 			console.error("Keep Alive: failed to set the tooltip", e);
 		}
 		try {
-			tray.setContextMenu(
-				Menu.buildFromTemplate([
+			const menu = Menu.buildFromTemplate([
 					// Disabled header — not clickable, it just says which vault this icon belongs to.
 					{ label: vault, enabled: false },
 					{ type: "separator" },
@@ -811,8 +827,9 @@ export default class BackgroundTrayPlugin extends Plugin {
 						label: "Quit completely",
 						click: () => this.quitCompletely(),
 					},
-				])
-			);
+				]);
+			this.trayMenu = menu;
+			if (process.platform !== "darwin") tray.setContextMenu(menu);
 		} catch (e) {
 			console.error("Keep Alive: failed to set the context menu", e);
 		}
@@ -1037,7 +1054,7 @@ class BackgroundTraySettingTab extends PluginSettingTab {
 			.setName("Create tray icon")
 			.setDesc(
 				mac
-					? "Add an icon to the menu bar. Left-click toggles show/hide. Required while the Dock icon is hidden."
+					? "Add an icon to the menu bar. Click opens the window, right-click shows the menu. Required while the Dock icon is hidden."
 					: "Add an icon to the system tray. Left-click toggles show/hide."
 			)
 			.addToggle((t) =>
