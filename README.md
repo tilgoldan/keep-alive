@@ -2,7 +2,7 @@
 
 Keep Obsidian running in the background when you close the window, with an optional tray or menu bar icon.
 
-> **Fork notice:** Keep Alive is a fork of [Synaphi/background-tray](https://github.com/Synaphi/background-tray) (MIT). It adds native macOS behaviour and aims to grow Linux-specific features. Not affiliated with or endorsed by Obsidian; "Obsidian" and its logo are trademarks of Obsidian.
+> **Fork notice:** Keep Alive is a fork of [Synaphi/background-tray](https://github.com/Synaphi/background-tray) (MIT). It adds native macOS behaviour. Not affiliated with or endorsed by Obsidian; "Obsidian" and its logo are trademarks of Obsidian.
 
 Closing the Obsidian window normally tears down the vault, and everything running inside it stops. Keep Alive hides the window instead, so Obsidian carries on working. Turn the plugin off and Obsidian behaves exactly as before.
 
