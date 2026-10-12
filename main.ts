@@ -1,28 +1,23 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import trayWhite1x from "./assets/icons/tray-white.png";
+import trayWhite2x from "./assets/icons/tray-white@2x.png";
+import trayBlack1x from "./assets/icons/tray-black.png";
+import trayBlack2x from "./assets/icons/tray-black@2x.png";
 
 /*
  * Keep Alive — keep Obsidian running in the background instead of quitting, with an optional tray icon.
  * Single purpose by design. Design notes live in the project docs (00. OVERVIEW / 01. Spec).
  */
 
-// Last-resort fallback icon (16x16 PNG). Normally app.getFileIcon gives us the real Obsidian icon.
-const DEFAULT_TRAY_ICON =
-	"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR42mOosXr7nxLMMGrAqAGjBgwXAwBGOKIfCm+pOwAAAABJRU5ErkJggg==";
-
-// macOS menu-bar icons: black and white silhouettes on transparent (base64 PNG), each as a
-// 13x16 px 1x and a 26x32 px 2x image. Electron's scale-factor options misreport sizes here, so
-// the pair is written next to each other as "name.png" + "name@2x.png" and the 1x file is
-// loaded by path: Electron then attaches both and macOS uses the 2x one on Retina displays.
+// Menu bar / tray icons (assets/icons/, inlined as base64 by the build): black and white
+// silhouettes on transparent, each as a 13x16 px 1x and a 26x32 px 2x image. Electron's
+// scale-factor options misreport sizes here, so the pair is written next to each other as
+// "name.png" + "name@2x.png" and the 1x file is loaded by path: Electron then attaches both and
+// macOS uses the 2x one on Retina displays.
 // The colour is picked from the system appearance (see resolveTrayIcon).
-const MAC_TRAY_ICONS = {
-	white: {
-		x1: "iVBORw0KGgoAAAANSUhEUgAAAA0AAAAQCAYAAADNo/U5AAAACXBIWXMAAAsTAAALEwEAmpwYAAAA00lEQVR4nI1RCxHCMAxNp2ASKmFTQCXMAUMBmwMcYGEOhgNAARJaB+AgpEeyZb3u6Lt7+7R5yUsCsANEvBA7KAEF1sQ7/jATbYnghSt6oic2pQLPIvmuc6IOtxiSJFeJrZQutRCSsyYnmjhQ8IGCAUTfTtlJ7aL0JZV6oiUeuSLwf0jyD/FhuJLnoIiW/QclPsPaUwtqrHo3Gm+2LZN0VaZhm5zFPmbiSLwZYx4yCJ3dYR7bPZF6oteJK1j4g2VPLGwz9gTPJXYnGfBOHPHASUe5+wKUyA40kxe+AAAAAABJRU5ErkJggg==",
-		x2: "iVBORw0KGgoAAAANSUhEUgAAABoAAAAgCAYAAAAMq2gFAAAACXBIWXMAAAsTAAALEwEAmpwYAAABn0lEQVR4nLWVi3GEIBBA10wKsINYQkqgBEswHVwHsQNLMB1cUgGTCkwHlmA62IAuE0R2gTvvzTCJB+yD5QdwA4ioTGngUZjgtSkTbiz2G87GBH31JA4FZ0KSBY/Y31v7F+6F1iMmmal+tP/flUbTuUOentbMDeIKt5CQLCTpQ3mJw6ULC2bj05aI+oSoFmacv+1NQ807trXAbQNwqDDmE+NqgOcbt1tBagNniH5MUSDT5IreoDBQsYjy+5khk3hJigzvpgxVVX2QMMYvyCixFvfn50LbONxdHabPWXTn+aIR9+ehweN5GantkhBpTtJEGrugsz+AyKA4LqnZ+Nj0tVTqoI+r00zfNSthBy4Vnbd+9mq6UmBN34rqWyaG9kXS3ebSJ6FpsLEHcieapSDURqPMRLJwR6pc0ZIpWmXUdqDvIdwIrdBZF4gs/vk7PhfIvy86Y9Y+LgP8m8TI3GtaQgcpIrLY7ZAi7zn3Aru0TQWSBUrALWV2NjkXqE/0jnvmROaZ6EmoYHsu3OIqkPmCs8D/60gHs1kPLTwKEiupzR85funFIUjatwAAAABJRU5ErkJggg==",
-	},
-	black: {
-		x1: "iVBORw0KGgoAAAANSUhEUgAAAA0AAAAQCAYAAADNo/U5AAAACXBIWXMAAAsTAAALEwEAmpwYAAAA1ElEQVR4nI2RsRHCMAxFFbKAR3BJmUxARqCkhI4O2CAbsEI2yAhASQUlXbIBtFRBOr7BcZSLdffuJFvf+ZFSGo+SMcyDIkIaT0zH1IyNEdwgENZMw2SxggYilxtNtPQEwj545OgaZ54otNAGZ5kmqtDo4kUTYeC78OyEdjv0UQrRllkhv8PKlZlTfwBv5pygkK9Y5DlELWo539H/n+T+N1Z/N379hG03SckH3ks0asLas9p7vVAGoO6pYjb0HbOliQj3lEOk7ejikoTGw8DqAvXBXXwAbx1KAXzu5GoAAAAASUVORK5CYII=",
-		x2: "iVBORw0KGgoAAAANSUhEUgAAABoAAAAgCAYAAAAMq2gFAAAACXBIWXMAAAsTAAALEwEAmpwYAAABk0lEQVR4nLWW0XHDIAyG/2sWyAb1CB1BI3gEukFGYINcJ8gI6Qa0b31zN6CPfXM3cOEs7mwCAhznv9PZGKwPgWR8wDYRX//wIB2dDc4mZyO3d9fLAhKMsLM8ZIwgEz/v+Xq3KAOx3H/h+7uWUSUAwTQ7D5O4YqOUAAmJoBPwJpEASUWztB4N0gWQhyjI0VbJCJCwF1YYQ7HDpwyoQ16f3C+NwR6gb5QLtasFvaLR0RYQOXuvgEl6rhnkE+HC937jUxt9gpyVtgShxWDv7Ijb7FIo11ky85a6YF0PHW7rJUQ7FkAmB+kSg4NTG00gnlTOTihEE38Fera44kOfQf4r0cUv5JZC8RjC/Gm6smPDbeL+PuNjtYQa+fDD8pX2w082dUCuQBblTTUF2MAwgpB9EmisBAWY15nbZ0Tqd4homWmh/pLHhSqAbCUorIB4JqnEi5pfmhpMoUIxrIP8/5Cy6uNcYb1sQwNkRKM0R0Noi8aknB0E0Afmn3ji9q+zH5QPvTdnX9hJhDliP/tU0T5MhML58w+2LFi63voOIgAAAABJRU5ErkJggg==",
-	},
+const TRAY_ICONS = {
+	white: { x1: trayWhite1x, x2: trayWhite2x },
+	black: { x1: trayBlack1x, x2: trayBlack2x },
 };
 
 // ── Minimal types for the Electron main-process API reached from the renderer ──
@@ -84,10 +79,6 @@ interface ElectronApp {
 	quit(): void;
 	relaunch(): void;
 	exit(code: number): void;
-	getFileIcon(
-		path: string,
-		options: { size: string }
-	): Promise<NativeImageLike>;
 	dock?: { show?: () => unknown; hide?: () => void };
 	focus?(options?: { steal?: boolean }): void;
 }
@@ -97,6 +88,7 @@ interface ElectronRemote {
 	getCurrentWindow(): ElectronWindow;
 	BrowserWindow?: { getAllWindows(): ElectronWindow[] };
 	Tray: new (icon: NativeImageLike) => ElectronTray;
+	nativeTheme?: { shouldUseDarkColors: boolean };
 	systemPreferences?: {
 		getUserDefault(key: string, type: "string"): string;
 		subscribeNotification(
@@ -118,6 +110,7 @@ interface BackgroundTraySettings {
 	trayIconPath: string;
 	trayTooltip: string;
 	hideDockWhenHidden: boolean;
+	trayIconColor: "auto" | "white" | "black";
 }
 
 const DEFAULT_SETTINGS: BackgroundTraySettings = {
@@ -126,6 +119,7 @@ const DEFAULT_SETTINGS: BackgroundTraySettings = {
 	trayIconPath: "",
 	trayTooltip: "{{vault}} — Obsidian",
 	hideDockWhenHidden: false,
+	trayIconColor: "auto",
 };
 
 // Reach the Electron main-process module from the renderer. The path differs between builds,
@@ -700,11 +694,34 @@ export default class BackgroundTrayPlugin extends Plugin {
 		}
 	}
 
+	// White or black bundled icon? The setting wins; otherwise guess from the platform:
+	// macOS follows the system appearance, GNOME's top bar is always dark, everything else
+	// (Windows, KDE, ...) follows the theme.
+	private useWhiteTrayIcon(remote: ElectronRemote): boolean {
+		const choice = this.settings.trayIconColor;
+		if (choice === "white") return true;
+		if (choice === "black") return false;
+		try {
+			if (process.platform === "darwin")
+				return (
+					remote.systemPreferences?.getUserDefault(
+						"AppleInterfaceStyle",
+						"string"
+					) === "Dark"
+				);
+			const desktop = (process.env.XDG_CURRENT_DESKTOP ?? "").toLowerCase();
+			if (desktop.includes("gnome")) return true;
+			return remote.nativeTheme?.shouldUseDarkColors ?? true;
+		} catch {
+			return true;
+		}
+	}
+
 	// Tray icon: custom path → the real Obsidian app icon → fallback.
 	private async resolveTrayIcon(
 		remote: ElectronRemote
 	): Promise<NativeImageLike> {
-		const { nativeImage, app } = remote;
+		const { nativeImage } = remote;
 		// 1) user-supplied path
 		if (this.settings.trayIconPath) {
 			try {
@@ -713,49 +730,36 @@ export default class BackgroundTrayPlugin extends Plugin {
 				);
 				if (!c.isEmpty()) return c;
 			} catch {
-				/* invalid path → next candidate */
+				/* invalid path → bundled icon */
 			}
 		}
-		// 2) macOS: bundled icon, white on a dark menu bar and black on a light one. Write the
-		// 1x/2x pair into the plugin folder and load the 1x file (see MAC_TRAY_ICONS).
-		if (process.platform === "darwin") {
-			try {
-				const adapter = this.app.vault.adapter as {
-					getBasePath?: () => string;
-					writeBinary(path: string, data: ArrayBuffer): Promise<void>;
-				};
-				const dir = this.manifest.dir;
-				const base = adapter.getBasePath?.();
-				if (dir && base) {
-					const dark =
-						remote.systemPreferences?.getUserDefault(
-							"AppleInterfaceStyle",
-							"string"
-						) === "Dark";
-					const name = dark ? "tray-white" : "tray-black";
-					const set = dark ? MAC_TRAY_ICONS.white : MAC_TRAY_ICONS.black;
-					const toBytes = (b64: string) =>
-						Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0)).buffer;
-					await adapter.writeBinary(`${dir}/${name}@2x.png`, toBytes(set.x2));
-					await adapter.writeBinary(`${dir}/${name}.png`, toBytes(set.x1));
-					const img = nativeImage.createFromPath(`${base}/${dir}/${name}.png`);
-					if (!img.isEmpty()) return img;
-				}
-			} catch (e) {
-				console.error("Keep Alive: macOS icon failed", e);
-			}
-		}
-		// 3) extract the icon from the Obsidian executable at runtime (nothing to bundle)
+		// 2) bundled icon, white or black to suit the bar
+		const white = this.useWhiteTrayIcon(remote);
+		const name = white ? "tray-white" : "tray-black";
+		const set = white ? TRAY_ICONS.white : TRAY_ICONS.black;
+		// Write the 1x/2x pair into the plugin folder and load the 1x file: Electron attaches
+		// both, and the high-DPI screen gets the sharp one (see TRAY_ICONS).
 		try {
-			const img = await app.getFileIcon(process.execPath, {
-				size: "normal",
-			});
-			if (!img.isEmpty()) return img;
-		} catch {
-			/* extraction failed → fallback */
+			const adapter = this.app.vault.adapter as {
+				getBasePath?: () => string;
+				writeBinary(path: string, data: ArrayBuffer): Promise<void>;
+			};
+			const dir = this.manifest.dir;
+			const base = adapter.getBasePath?.();
+			if (dir && base) {
+				const toBytes = (b64: string) =>
+					Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0)).buffer;
+				await adapter.writeBinary(`${dir}/${name}@2x.png`, toBytes(set.x2));
+				await adapter.writeBinary(`${dir}/${name}.png`, toBytes(set.x1));
+				const img = nativeImage.createFromPath(`${base}/${dir}/${name}.png`);
+				if (!img.isEmpty()) return img;
+			}
+		} catch (e) {
+			console.error("Keep Alive: bundled tray icon failed", e);
 		}
-		// 4) last-resort fallback
-		return nativeImage.createFromDataURL(DEFAULT_TRAY_ICON);
+		// 3) the files couldn't be written: use the 1x icon straight from memory (works, but soft
+		// on high-DPI screens)
+		return nativeImage.createFromDataURL(`data:image/png;base64,${set.x1}`);
 	}
 
 	private destroyTray() {
@@ -1085,9 +1089,28 @@ class BackgroundTraySettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Tray icon colour")
+			.setDesc(
+				"White or black, to suit your bar. Automatic follows the system theme."
+			)
+			.addDropdown((d) =>
+				d
+					.addOption("auto", "Automatic")
+					.addOption("white", "White")
+					.addOption("black", "Black")
+					.setValue(this.plugin.settings.trayIconColor)
+					.onChange(async (v) => {
+						this.plugin.settings.trayIconColor =
+							v === "white" || v === "black" ? v : "auto";
+						await this.plugin.saveSettings();
+						await this.plugin.refreshTray();
+					})
+			);
+
+		new Setting(containerEl)
 			.setName("Tray icon image")
 			.setDesc(
-				"Absolute path to a custom tray icon. Leave empty to use Obsidian's own icon (16x16 recommended)."
+				"Absolute path to a custom tray icon. Leave empty to use the built-in icon."
 			)
 			.addText((txt) =>
 				txt

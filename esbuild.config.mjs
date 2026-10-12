@@ -32,6 +32,7 @@ const context = await esbuild.context({
 		...builtinModules,
 		...builtinModules.map((m) => `node:${m}`),
 	],
+	loader: { ".png": "base64" },
 	format: "cjs",
 	target: "es2018",
 	logLevel: "info",
