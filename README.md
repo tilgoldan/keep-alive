@@ -18,8 +18,10 @@ A robust, modern reimplementation of the (now unmaintained) `obsidian-tray`, bui
 
 ## Features
 
-- **Run in background** — closing the window (X) hides Obsidian to the tray instead of quitting.
-- **Tray icon** — left-click toggles show/hide; right-click menu is headed by the vault name, then Show/Hide, Relaunch, Quit completely. Uses Obsidian's own app icon by default.
+- **Run in background** — closing the window (X) hides Obsidian to the tray instead of quitting (Cmd+Q and the Dock's Quit on macOS still quit for real).
+- **macOS behaviour** — Cmd+Q, the Dock's Quit and shutdown quit for real; clicking the Dock icon brings the window back. An optional setting hides the Dock icon while all windows are hidden; it needs the tray icon, so the two can't both be off.
+- **macOS menu bar icon** — a bundled single-colour Obsidian glyph, white on a dark and black on a light menu bar, in 1x and 2x so it stays sharp on Retina. A custom icon path still overrides it. "Obsidian" and its logo are trademarks of Obsidian; this plugin is not affiliated with or endorsed by them.
+- **Tray icon** — left-click toggles show/hide; right-click menu is headed by the vault name, then Show/Hide, Relaunch, Quit completely. On Windows and Linux it uses Obsidian's own app icon by default.
 - **Single-instance focus** — relaunching Obsidian while it's hidden in the tray restores the existing window instead of opening the vault switcher. (Toggle in settings.)
 - **Quit completely / Relaunch** — from the tray icon's right-click menu.
 - **Tells your vaults apart** — with several vaults open you get one tray icon each; the tooltip and the right-click menu header both show that icon's vault name.

@@ -9,6 +9,22 @@ import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 const DEFAULT_TRAY_ICON =
 	"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR42mOosXr7nxLMMGrAqAGjBgwXAwBGOKIfCm+pOwAAAABJRU5ErkJggg==";
 
+// macOS menu-bar icons: black and white silhouettes on transparent (base64 PNG), each as a
+// 13x16 px 1x and a 26x32 px 2x image. Electron's scale-factor options misreport sizes here, so
+// the pair is written next to each other as "name.png" + "name@2x.png" and the 1x file is
+// loaded by path: Electron then attaches both and macOS uses the 2x one on Retina displays.
+// The colour is picked from the system appearance (see resolveTrayIcon).
+const MAC_TRAY_ICONS = {
+	white: {
+		x1: "iVBORw0KGgoAAAANSUhEUgAAAA0AAAAQCAYAAADNo/U5AAAACXBIWXMAAAsTAAALEwEAmpwYAAAA00lEQVR4nI1RCxHCMAxNp2ASKmFTQCXMAUMBmwMcYGEOhgNAARJaB+AgpEeyZb3u6Lt7+7R5yUsCsANEvBA7KAEF1sQ7/jATbYnghSt6oic2pQLPIvmuc6IOtxiSJFeJrZQutRCSsyYnmjhQ8IGCAUTfTtlJ7aL0JZV6oiUeuSLwf0jyD/FhuJLnoIiW/QclPsPaUwtqrHo3Gm+2LZN0VaZhm5zFPmbiSLwZYx4yCJ3dYR7bPZF6oteJK1j4g2VPLGwz9gTPJXYnGfBOHPHASUe5+wKUyA40kxe+AAAAAABJRU5ErkJggg==",
+		x2: "iVBORw0KGgoAAAANSUhEUgAAABoAAAAgCAYAAAAMq2gFAAAACXBIWXMAAAsTAAALEwEAmpwYAAABn0lEQVR4nLWVi3GEIBBA10wKsINYQkqgBEswHVwHsQNLMB1cUgGTCkwHlmA62IAuE0R2gTvvzTCJB+yD5QdwA4ioTGngUZjgtSkTbiz2G87GBH31JA4FZ0KSBY/Y31v7F+6F1iMmmal+tP/flUbTuUOentbMDeIKt5CQLCTpQ3mJw6ULC2bj05aI+oSoFmacv+1NQ807trXAbQNwqDDmE+NqgOcbt1tBagNniH5MUSDT5IreoDBQsYjy+5khk3hJigzvpgxVVX2QMMYvyCixFvfn50LbONxdHabPWXTn+aIR9+ehweN5GantkhBpTtJEGrugsz+AyKA4LqnZ+Nj0tVTqoI+r00zfNSthBy4Vnbd+9mq6UmBN34rqWyaG9kXS3ebSJ6FpsLEHcieapSDURqPMRLJwR6pc0ZIpWmXUdqDvIdwIrdBZF4gs/vk7PhfIvy86Y9Y+LgP8m8TI3GtaQgcpIrLY7ZAi7zn3Aru0TQWSBUrALWV2NjkXqE/0jnvmROaZ6EmoYHsu3OIqkPmCs8D/60gHs1kPLTwKEiupzR85funFIUjatwAAAABJRU5ErkJggg==",
+	},
+	black: {
+		x1: "iVBORw0KGgoAAAANSUhEUgAAAA0AAAAQCAYAAADNo/U5AAAACXBIWXMAAAsTAAALEwEAmpwYAAAA1ElEQVR4nI2RsRHCMAxFFbKAR3BJmUxARqCkhI4O2CAbsEI2yAhASQUlXbIBtFRBOr7BcZSLdffuJFvf+ZFSGo+SMcyDIkIaT0zH1IyNEdwgENZMw2SxggYilxtNtPQEwj545OgaZ54otNAGZ5kmqtDo4kUTYeC78OyEdjv0UQrRllkhv8PKlZlTfwBv5pygkK9Y5DlELWo539H/n+T+N1Z/N379hG03SckH3ks0asLas9p7vVAGoO6pYjb0HbOliQj3lEOk7ejikoTGw8DqAvXBXXwAbx1KAXzu5GoAAAAASUVORK5CYII=",
+		x2: "iVBORw0KGgoAAAANSUhEUgAAABoAAAAgCAYAAAAMq2gFAAAACXBIWXMAAAsTAAALEwEAmpwYAAABk0lEQVR4nLWW0XHDIAyG/2sWyAb1CB1BI3gEukFGYINcJ8gI6Qa0b31zN6CPfXM3cOEs7mwCAhznv9PZGKwPgWR8wDYRX//wIB2dDc4mZyO3d9fLAhKMsLM8ZIwgEz/v+Xq3KAOx3H/h+7uWUSUAwTQ7D5O4YqOUAAmJoBPwJpEASUWztB4N0gWQhyjI0VbJCJCwF1YYQ7HDpwyoQ16f3C+NwR6gb5QLtasFvaLR0RYQOXuvgEl6rhnkE+HC937jUxt9gpyVtgShxWDv7Ijb7FIo11ky85a6YF0PHW7rJUQ7FkAmB+kSg4NTG00gnlTOTihEE38Fera44kOfQf4r0cUv5JZC8RjC/Gm6smPDbeL+PuNjtYQa+fDD8pX2w082dUCuQBblTTUF2MAwgpB9EmisBAWY15nbZ0Tqd4homWmh/pLHhSqAbCUorIB4JqnEi5pfmhpMoUIxrIP8/5Cy6uNcYb1sQwNkRKM0R0Noi8aknB0E0Afmn3ji9q+zH5QPvTdnX9hJhDliP/tU0T5MhML58w+2LFi63voOIgAAAABJRU5ErkJggg==",
+	},
+};
+
 // ── Minimal types for the Electron main-process API reached from the renderer ──
 // Declaring only the members we actually use keeps the unsafe-access lint rules quiet.
 interface ElectronEvent {
@@ -61,6 +77,8 @@ interface ElectronApp {
 		event: "browser-window-created",
 		listener: (e: ElectronEvent, w: ElectronWindow) => void
 	): void;
+	on(event: "before-quit", listener: () => void): void;
+	on(event: "activate", listener: () => void): void;
 	removeListener(event: string, listener: ElectronListener): void;
 	emit(event: string): boolean;
 	quit(): void;
@@ -70,13 +88,23 @@ interface ElectronApp {
 		path: string,
 		options: { size: string }
 	): Promise<NativeImageLike>;
-	dock?: { show?: () => void };
+	dock?: { show?: () => unknown; hide?: () => void };
+	focus?(options?: { steal?: boolean }): void;
 }
 
 interface ElectronRemote {
 	app: ElectronApp;
 	getCurrentWindow(): ElectronWindow;
+	BrowserWindow?: { getAllWindows(): ElectronWindow[] };
 	Tray: new (icon: NativeImageLike) => ElectronTray;
+	systemPreferences?: {
+		getUserDefault(key: string, type: "string"): string;
+		subscribeNotification(
+			event: string,
+			callback: () => void
+		): number;
+		unsubscribeNotification(id: number): void;
+	};
 	Menu: { buildFromTemplate(template: MenuItemTemplate[]): unknown };
 	nativeImage: {
 		createFromPath(path: string): NativeImageLike;
@@ -85,19 +113,19 @@ interface ElectronRemote {
 }
 
 interface BackgroundTraySettings {
-	runInBackground: boolean;
 	createTrayIcon: boolean;
 	focusOnRelaunch: boolean;
 	trayIconPath: string;
 	trayTooltip: string;
+	hideDockWhenHidden: boolean;
 }
 
 const DEFAULT_SETTINGS: BackgroundTraySettings = {
-	runInBackground: true,
 	createTrayIcon: true,
 	focusOnRelaunch: true,
 	trayIconPath: "",
 	trayTooltip: "{{vault}} — Obsidian",
+	hideDockWhenHidden: false,
 };
 
 // Reach the Electron main-process module from the renderer. The path differs between builds,
@@ -130,6 +158,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 	private remote: ElectronRemote | null = null;
 	private win: ElectronWindow | null = null;
 	private tray: ElectronTray | null = null;
+	private appearanceSubId: number | null = null;
 	private closeHandler: ((e: ElectronEvent) => void) | null = null;
 	private beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null = null;
 	private secondInstanceHandler: (() => void) | null = null;
@@ -138,6 +167,10 @@ export default class BackgroundTrayPlugin extends Plugin {
 		| null = null;
 	private lastRelaunchAt = 0;
 	private reallyQuitting = false;
+	// macOS: app-level listeners (Cmd+Q / dock Quit / shutdown, and dock-icon click).
+	private beforeQuitHandler: (() => void) | null = null;
+	private activateHandler: (() => void) | null = null;
+	private beforeQuitResetTimer: ReturnType<typeof setTimeout> | null = null;
 	// Vault pickers we hid on relaunch (never closed, see registerSingleInstance). They must go
 	// away before the main window does, or Obsidian never reaches window-all-closed (issue #3).
 	private hiddenPickers: ElectronWindow[] = [];
@@ -178,6 +211,8 @@ export default class BackgroundTrayPlugin extends Plugin {
 		this.registerCloseInterception();
 		// Restore the existing window when relaunched while hidden (and suppress the vault picker).
 		this.registerSingleInstance();
+		// macOS: let Cmd+Q / dock Quit / shutdown through, and reopen on a dock-icon click.
+		this.registerMacLifecycle();
 		// Know about the pop-out / Settings windows this vault opens, so hiding hides them too.
 		this.patchWindowOpen();
 
@@ -211,6 +246,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		this.removeBeforeUnload();
 		this.removeCloseInterception();
 		this.removeSingleInstance();
+		this.removeMacLifecycle();
 		this.unpatchWindowOpen();
 		this.destroyHiddenPickers();
 		// Never leave a pop-out invisible with no way to get it back.
@@ -237,7 +273,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		if (typeof window === "undefined") return;
 		this.removeBeforeUnload(); // guard against duplicate registration
 		this.beforeUnloadHandler = (e: BeforeUnloadEvent) => {
-			if (this.settings.runInBackground && !this.reallyQuitting) {
+			if (!this.reallyQuitting) {
 				e.preventDefault();
 				// Electron: cancel the close (returnValue is a deprecated type → cast around it)
 				(e as { returnValue: boolean }).returnValue = false;
@@ -416,7 +452,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		if (!win) return;
 		this.removeCloseInterception(); // guard against duplicate registration
 		this.closeHandler = (e: ElectronEvent) => {
-			if (this.settings.runInBackground && !this.reallyQuitting) {
+			if (!this.reallyQuitting) {
 				e.preventDefault();
 				this.hideWindow();
 				return;
@@ -571,6 +607,54 @@ export default class BackgroundTrayPlugin extends Plugin {
 		this.windowCreatedHandler = null;
 	}
 
+	// ── macOS lifecycle ─────────────────────────────────────
+	// A Mac app keeps running with no window, and its Dock icon brings the window back. Two
+	// app-level events give that behaviour:
+	//  - "before-quit" fires for Cmd+Q, Dock > Quit and logout/shutdown, before any window gets a
+	//    close request. Treat it as a real quit, or the close veto would block all of them.
+	//  - "activate" fires when the Dock icon is clicked: show the hidden window again.
+	private registerMacLifecycle() {
+		if (process.platform !== "darwin") return;
+		const app = this.remote?.app;
+		if (!app) return;
+		this.removeMacLifecycle();
+		this.beforeQuitHandler = () => {
+			this.reallyQuitting = true;
+			// If the quit gets cancelled (the process is still here a bit later), hide again
+			// on the next window close.
+			if (this.beforeQuitResetTimer) clearTimeout(this.beforeQuitResetTimer);
+			this.beforeQuitResetTimer = setTimeout(() => {
+				this.reallyQuitting = false;
+				this.beforeQuitResetTimer = null;
+			}, 5000);
+		};
+		this.activateHandler = () => this.showWindow();
+		try {
+			app.on("before-quit", this.beforeQuitHandler);
+			app.on("activate", this.activateHandler);
+		} catch (e) {
+			console.error("Background Tray: failed to register macOS lifecycle", e);
+		}
+	}
+
+	private removeMacLifecycle() {
+		const app = this.remote?.app;
+		if (app) {
+			try {
+				if (this.beforeQuitHandler)
+					app.removeListener("before-quit", this.beforeQuitHandler);
+				if (this.activateHandler)
+					app.removeListener("activate", this.activateHandler);
+			} catch {
+				/* already removed */
+			}
+		}
+		if (this.beforeQuitResetTimer) clearTimeout(this.beforeQuitResetTimer);
+		this.beforeQuitResetTimer = null;
+		this.beforeQuitHandler = null;
+		this.activateHandler = null;
+	}
+
 	// Destroy (not close) the pickers we kept hidden. destroy() skips the close/beforeunload
 	// round trip; Obsidian's own picker "closed" handler only clears its reference.
 	destroyHiddenPickers() {
@@ -597,6 +681,18 @@ export default class BackgroundTrayPlugin extends Plugin {
 			this.tray = tray;
 			this.applyTrayLabels(tray, Menu);
 			tray.on("click", () => this.toggleWindow());
+			// macOS: swap the white/black icon when the system appearance changes.
+			if (process.platform === "darwin") {
+				try {
+					this.appearanceSubId =
+						remote.systemPreferences?.subscribeNotification(
+							"AppleInterfaceThemeChangedNotification",
+							() => void this.refreshTray()
+						) ?? null;
+				} catch {
+					this.appearanceSubId = null;
+				}
+			}
 		} catch (e) {
 			console.error("Background Tray: failed to create the tray icon", e);
 			new Notice("Background Tray: failed to create the tray icon.");
@@ -620,7 +716,36 @@ export default class BackgroundTrayPlugin extends Plugin {
 				/* invalid path → next candidate */
 			}
 		}
-		// 2) extract the icon from the Obsidian executable at runtime (nothing to bundle)
+		// 2) macOS: bundled icon, white on a dark menu bar and black on a light one. Write the
+		// 1x/2x pair into the plugin folder and load the 1x file (see MAC_TRAY_ICONS).
+		if (process.platform === "darwin") {
+			try {
+				const adapter = this.app.vault.adapter as {
+					getBasePath?: () => string;
+					writeBinary(path: string, data: ArrayBuffer): Promise<void>;
+				};
+				const dir = this.manifest.dir;
+				const base = adapter.getBasePath?.();
+				if (dir && base) {
+					const dark =
+						remote.systemPreferences?.getUserDefault(
+							"AppleInterfaceStyle",
+							"string"
+						) === "Dark";
+					const name = dark ? "tray-white" : "tray-black";
+					const set = dark ? MAC_TRAY_ICONS.white : MAC_TRAY_ICONS.black;
+					const toBytes = (b64: string) =>
+						Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0)).buffer;
+					await adapter.writeBinary(`${dir}/${name}@2x.png`, toBytes(set.x2));
+					await adapter.writeBinary(`${dir}/${name}.png`, toBytes(set.x1));
+					const img = nativeImage.createFromPath(`${base}/${dir}/${name}.png`);
+					if (!img.isEmpty()) return img;
+				}
+			} catch (e) {
+				console.error("Background Tray: macOS icon failed", e);
+			}
+		}
+		// 3) extract the icon from the Obsidian executable at runtime (nothing to bundle)
 		try {
 			const img = await app.getFileIcon(process.execPath, {
 				size: "normal",
@@ -629,11 +754,21 @@ export default class BackgroundTrayPlugin extends Plugin {
 		} catch {
 			/* extraction failed → fallback */
 		}
-		// 3) last-resort fallback
+		// 4) last-resort fallback
 		return nativeImage.createFromDataURL(DEFAULT_TRAY_ICON);
 	}
 
 	private destroyTray() {
+		if (this.appearanceSubId !== null) {
+			try {
+				this.remote?.systemPreferences?.unsubscribeNotification(
+					this.appearanceSubId
+				);
+			} catch {
+				/* already gone */
+			}
+			this.appearanceSubId = null;
+		}
 		if (this.tray) {
 			try {
 				this.tray.destroy();
@@ -736,6 +871,7 @@ export default class BackgroundTrayPlugin extends Plugin {
 		try {
 			if (win.isVisible() && !win.isMinimized()) {
 				win.hide();
+				this.updateDock();
 			} else {
 				this.showWindow();
 			}
@@ -748,6 +884,13 @@ export default class BackgroundTrayPlugin extends Plugin {
 	showWindow() {
 		const win = this.win;
 		if (!win) return;
+		if (process.platform === "darwin" && this.settings.hideDockWhenHidden) {
+			try {
+				void this.remote?.app?.dock?.show?.();
+			} catch {
+				/* no dock */
+			}
+		}
 		try {
 			if (win.isMinimized()) win.restore();
 			win.show();
@@ -757,6 +900,9 @@ export default class BackgroundTrayPlugin extends Plugin {
 		this.restoreSecondaries();
 		try {
 			win.focus();
+			// Coming back from a hidden Dock icon, the app has to be activated explicitly.
+			if (process.platform === "darwin" && this.settings.hideDockWhenHidden)
+				this.remote?.app?.focus?.({ steal: true });
 		} catch {
 			/* ignore focus failure */
 		}
@@ -771,6 +917,30 @@ export default class BackgroundTrayPlugin extends Plugin {
 			win.hide();
 		} catch {
 			/* ignore hide failure */
+		}
+		this.updateDock();
+	}
+
+	// macOS: with "hide Dock icon" on, the Dock icon goes away while no
+	// window is visible and comes back with the window. Only ever done while the tray icon
+	// exists, so there is always a way back.
+	updateDock() {
+		if (process.platform !== "darwin") return;
+		const remote = this.remote;
+		const dock = remote?.app?.dock;
+		if (!remote || !dock) return;
+		try {
+			const wantHidden =
+				this.settings.hideDockWhenHidden &&
+				this.settings.createTrayIcon &&
+				this.tray !== null &&
+				!(remote.BrowserWindow?.getAllWindows() ?? []).some(
+					(w) => !w.isDestroyed() && w.isVisible()
+				);
+			if (wantHidden) dock.hide?.();
+			else void dock.show?.();
+		} catch (e) {
+			console.error("Background Tray: dock update failed", e);
 		}
 	}
 
@@ -822,6 +992,8 @@ export default class BackgroundTrayPlugin extends Plugin {
 			| Partial<BackgroundTraySettings>
 			| null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
+		// Never leave the app with neither a Dock icon nor a tray icon.
+		if (!this.settings.createTrayIcon) this.settings.hideDockWhenHidden = false;
 	}
 
 	async saveSettings() {
@@ -855,31 +1027,45 @@ class BackgroundTraySettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName("Run in background")
-			.setDesc("Closing the window (X) hides Obsidian to the tray instead of quitting.")
-			.addToggle((t) =>
-				t
-					.setValue(this.plugin.settings.runInBackground)
-					.onChange(async (v) => {
-						this.plugin.settings.runInBackground = v;
-						await this.plugin.saveSettings();
-					})
-			);
+		const mac = process.platform === "darwin";
 
 		new Setting(containerEl)
 			.setName("Create tray icon")
-			.setDesc("Add an icon to the system tray. Left-click toggles show/hide.")
+			.setDesc(
+				mac
+					? "Add an icon to the menu bar. Left-click toggles show/hide. Required while the Dock icon is hidden."
+					: "Add an icon to the system tray. Left-click toggles show/hide."
+			)
 			.addToggle((t) =>
 				t
 					.setValue(this.plugin.settings.createTrayIcon)
+					.setDisabled(mac && this.plugin.settings.hideDockWhenHidden)
 					.onChange(async (v) => {
 						this.plugin.settings.createTrayIcon = v;
 						await this.plugin.saveSettings();
 						await this.plugin.refreshTray();
+						this.display();
 					})
 			);
+
+		if (mac) {
+			new Setting(containerEl)
+				.setName("Hide Dock icon while hidden")
+				.setDesc(
+					"Remove the Dock icon while all windows are hidden; it comes back when you show the window from the menu bar icon. Needs the tray icon, so the two can't both be off."
+				)
+				.addToggle((t) =>
+					t
+						.setValue(this.plugin.settings.hideDockWhenHidden)
+						.setDisabled(!this.plugin.settings.createTrayIcon)
+						.onChange(async (v) => {
+							this.plugin.settings.hideDockWhenHidden = v;
+							await this.plugin.saveSettings();
+							this.plugin.updateDock();
+							this.display();
+						})
+				);
+		}
 
 		new Setting(containerEl)
 			.setName("Focus existing window on relaunch")

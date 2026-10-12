@@ -80,7 +80,7 @@ const p = new PluginClass(app, { id:"background-tray" });
   ok((log.listeners["close"]||[]).length===1, "registers exactly one close listener");
   ok(p._commands.length===3, "registers 3 commands (show/hide/toggle)");
   ok(p._commands.map(c=>c.id).sort().join(",")==="hide-window,show-window,toggle-window", "command ids = show/hide/toggle-window");
-  // Simulate closing: runInBackground defaults to ON → preventDefault + hide
+  // Simulate closing: the close is always intercepted → preventDefault + hide
   let prevented=false; const ev={preventDefault(){prevented=true;}};
   (log.listeners["close"]||[]).forEach(fn=>fn(ev));
   ok(prevented===true, "close interception: calls preventDefault");
@@ -157,16 +157,16 @@ const p = new PluginClass(app, { id:"background-tray" });
   ok(prevented2===false, "close interception is bypassed while reallyQuitting");
   p2.onunload();
 
-  // ── issue #3 (b): a real close with "Run in background" OFF also takes the hidden picker along ──
+  // ── issue #3 (b): a real close with real quit also takes the hidden picker along ──
   const p3 = new PluginClass(app, {id:"background-tray"}); await p3.onload();
-  p3.settings.runInBackground=false;
+  p3.reallyQuitting=true;
   remoteStub.app._emit("second-instance");
   const picker3=mkPicker(4);
   remoteStub.app._emit("browser-window-created", {preventDefault(){}}, picker3);
   const hiddenBefore3=log.hidden;
   let prevented3=false; (log.listeners["close"]||[]).forEach(fn=>fn({preventDefault(){prevented3=true;}}));
-  ok(prevented3===false && log.hidden===hiddenBefore3, "run-in-background OFF: close is not intercepted");
-  ok(picker3.destroyed===1, "run-in-background OFF: the hidden vault picker is destroyed on the real close");
+  ok(prevented3===false && log.hidden===hiddenBefore3, "really quitting: close is not intercepted");
+  ok(picker3.destroyed===1, "really quitting: the hidden vault picker is destroyed on the real close");
   p3.onunload();
 
   // ── issue #3 (c): turning "Focus existing window on relaunch" off releases the hidden picker ──
